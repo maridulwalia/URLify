@@ -560,12 +560,6 @@ This project demonstrates understanding of:
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
 ## 👨‍💻 Author
 
 Built with ❤️ as a demonstration of system design and backend development skills.
