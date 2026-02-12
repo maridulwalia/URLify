@@ -70,6 +70,15 @@ URLify is a high-performance URL shortening platform designed with system design
 - **Spring Security** - Authentication & authorization
 - **Spring Data MongoDB** - Database abstraction
 
+### Frontend
+- **React 18** - UI Library
+- **TypeScript** - Static typing
+- **Vite** - Build tool
+- **Tailwind CSS** - Utility-first CSS framework
+- **Lucide React** - Icons
+- **Axios** - HTTP client
+- **Recharts** - Charting library
+
 ### Database & Caching
 - **MongoDB** - Primary data store
 - **Redis 7** - High-speed caching layer
@@ -165,7 +174,13 @@ cd urlify
 docker-compose up -d
 ```
 
-3. **Configure application properties** (Optional)
+3. **Install Frontend Dependencies**
+```bash
+cd frontend
+npm install
+```
+
+4. **Configure application properties** (Optional)
 ```bash
 # The application is pre-configured to work with the Docker setup
 # MongoDB: mongodb://localhost:27017/urlify_db
@@ -184,6 +199,14 @@ mvn spring-boot:run
 ```
 
 The server will start on `http://localhost:8080`
+
+6. **Run the Frontend**
+```bash
+# In the frontend directory
+npm run dev
+```
+
+The frontend will start on `http://localhost:5173`
 
 ---
 
@@ -495,6 +518,13 @@ urlify/
 │   └── schema.sql                      # Database schema
 ├── docker-compose.yml                  # Docker setup
 ├── pom.xml                             # Maven dependencies
+├── frontend/                           # Frontend application
+│   ├── src/                            # Source code
+│   ├── public/                         # Static assets
+│   ├── package.json                    # Frontend dependencies
+│   ├── tsconfig.json                   # TypeScript config
+│   ├── vite.config.ts                  # Vite config
+│   └── tailwind.config.js              # Tailwind config
 └── README.md                           # This file
 ```
 
