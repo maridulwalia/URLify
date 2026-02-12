@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: urlify-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: urlify_db
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - urlify-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: urlify-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - urlify-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  urlify-network:
+    driver: bridge
