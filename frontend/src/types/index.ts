@@ -15,6 +15,7 @@ export interface UrlData {
     id: string;
     shortCode: string;
     originalUrl: string; // Changed from longUrl
+    shortUrl: string;
     createdAt: string;
     expiresAt?: string; // Changed from expiryDate
     clicks: number; // Changed from clickCount

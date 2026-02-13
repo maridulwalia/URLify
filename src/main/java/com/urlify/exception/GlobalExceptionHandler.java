@@ -64,8 +64,10 @@ public class GlobalExceptionHandler {
             org.springframework.web.HttpRequestMethodNotSupportedException ex) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.METHOD_NOT_ALLOWED.value(),
-                "HTTP method '" + ex.getMethod() + "' is not supported for this endpoint. " +
-                        "Supported methods: " + String.join(", ", ex.getSupportedMethods()),
+                "HTTP method '" + ex.getMethod() + "' is not supported for this endpoint." +
+                        (ex.getSupportedMethods() != null
+                                ? " Supported methods: " + String.join(", ", ex.getSupportedMethods())
+                                : ""),
                 LocalDateTime.now());
         return new ResponseEntity<>(error, HttpStatus.METHOD_NOT_ALLOWED);
     }

@@ -158,7 +158,7 @@ public class UrlService {
      */
     private UrlResponse mapToResponse(Url url) {
         return UrlResponse.builder()
-                .id(Long.parseLong(url.getId().hashCode() + ""))
+                .id(url.getId())
                 .originalUrl(url.getOriginalUrl())
                 .shortCode(url.getShortCode())
                 .shortUrl(BASE_URL + serverPort + "/" + url.getShortCode())

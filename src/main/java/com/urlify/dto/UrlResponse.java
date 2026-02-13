@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class UrlResponse {
 
-    private Long id;
+    private String id;
     private String originalUrl;
     private String shortCode;
     private String shortUrl;
