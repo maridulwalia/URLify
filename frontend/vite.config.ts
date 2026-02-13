@@ -16,6 +16,12 @@ export default defineConfig({
                 target: 'http://localhost:8080',
                 changeOrigin: true,
             },
+            // Proxy short URL redirects to backend
+            // Matches single-segment alphanumeric paths that aren't known frontend routes
+            '^/(?!login|register|dashboard|urls|analytics|assets|node_modules|@|src)[a-zA-Z0-9]{1,10}$': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+            },
         },
     },
 })

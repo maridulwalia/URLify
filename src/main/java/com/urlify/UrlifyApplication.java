@@ -2,11 +2,13 @@ package com.urlify;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.mongodb.config.EnableMongoAuditing;
 
 /**
  * URLify Application - Scalable URL Shortening and Analytics Platform
  */
 @SpringBootApplication
+@EnableMongoAuditing
 public class UrlifyApplication {
 
     public static void main(String[] args) {
