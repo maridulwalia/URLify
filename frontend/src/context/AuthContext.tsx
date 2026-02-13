@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -11,26 +11,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null);
+// Synchronous initializers — read from localStorage immediately so
+// ProtectedRoute never sees a "not-yet-loaded" null on the first render.
+function getInitialToken(): string | null {
+    return localStorage.getItem('token');
+}
 
-    useEffect(() => {
-        // Load auth state from localStorage on mount
-        const storedToken = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-
-        if (storedToken && storedUser && storedUser !== 'undefined' && storedUser !== 'null') {
-            try {
-                setToken(storedToken);
-                setUser(JSON.parse(storedUser));
-            } catch (error) {
-                // Clear invalid data
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-            }
+function getInitialUser(): User | null {
+    const stored = localStorage.getItem('user');
+    if (stored && stored !== 'undefined' && stored !== 'null') {
+        try {
+            return JSON.parse(stored);
+        } catch {
+            localStorage.removeItem('user');
         }
-    }, []);
+    }
+    return null;
+}
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const [user, setUser] = useState<User | null>(getInitialUser);
+    const [token, setToken] = useState<string | null>(getInitialToken);
 
     const login = (newToken: string, newUser: User) => {
         localStorage.setItem('token', newToken);

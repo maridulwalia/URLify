@@ -86,24 +86,24 @@ export const UrlsPage: React.FC = () => {
                         <div className="grid gap-4">
                             {urls.map((url) => (
                                 <Card key={url.id} className="hover:shadow-md transition-shadow">
-                                    <div className="flex items-start justify-between gap-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <h3 className="text-lg font-semibold text-primary-600 font-mono">
+                                                <h3 className="text-base sm:text-lg font-semibold text-primary-600 font-mono break-all">
                                                     /{url.shortCode}
                                                 </h3>
                                                 <button
                                                     onClick={() => handleCopy(url.shortCode)}
-                                                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                                                    className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
                                                     title="Copy URL"
                                                 >
                                                     <Copy size={16} className="text-gray-500" />
                                                 </button>
                                             </div>
 
-                                            <p className="text-gray-700 mb-3 break-all">{url.originalUrl}</p>
+                                            <p className="text-sm sm:text-base text-gray-700 mb-3 break-all">{url.originalUrl}</p>
 
-                                            <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                                            <div className="flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500">
                                                 <div className="flex items-center gap-1">
                                                     <Calendar size={14} />
                                                     <span>
@@ -127,7 +127,7 @@ export const UrlsPage: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 self-end sm:self-start">
                                             <button
                                                 onClick={() => window.open(`/${url.shortCode}`, '_blank')}
                                                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"

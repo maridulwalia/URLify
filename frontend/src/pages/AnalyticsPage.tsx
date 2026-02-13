@@ -58,7 +58,7 @@ export const AnalyticsPage: React.FC = () => {
                 ) : (
                     <>
                         {/* Stats Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -103,11 +103,11 @@ export const AnalyticsPage: React.FC = () => {
                             {analytics.map((item) => (
                                 <Card key={item.shortCode}>
                                     <div className="mb-4">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h3 className="text-lg font-semibold text-primary-600 font-mono">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 mb-2">
+                                            <h3 className="text-base sm:text-lg font-semibold text-primary-600 font-mono break-all">
                                                 /{item.shortCode}
                                             </h3>
-                                            <span className="text-sm font-medium text-gray-600">
+                                            <span className="text-sm font-medium text-gray-600 flex-shrink-0">
                                                 {item.totalClicks} total clicks
                                             </span>
                                         </div>
@@ -117,7 +117,7 @@ export const AnalyticsPage: React.FC = () => {
                                     {item.recentClicks && item.recentClicks.length > 0 ? (
                                         <div className="mt-4">
                                             <h4 className="text-sm font-medium text-gray-700 mb-3">Recent Clicks (Last 7 Days)</h4>
-                                            <ResponsiveContainer width="100%" height={200}>
+                                            <ResponsiveContainer width="100%" height={180}>
                                                 <BarChart
                                                     data={(() => {
                                                         const clicksByDate = item.recentClicks.reduce((acc: any, click) => {

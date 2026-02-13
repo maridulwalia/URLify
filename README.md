@@ -91,8 +91,54 @@ URLify is a high-performance URL shortening platform designed with system design
 ### Build & Dependencies
 - **Maven** - Dependency management
 - **Lombok** - Reduce boilerplate code
+- **Docker** - Containerized development environment
 
 ---
+
+## 🐳 Docker Setup
+
+### Why Docker?
+
+URLify uses **Docker Compose** to run its infrastructure dependencies (MongoDB and Redis). Here's why:
+
+| Benefit | Explanation |
+|---------|-------------|
+| **One-command setup** | `docker-compose up -d` starts everything — no manual installation of MongoDB or Redis |
+| **Environment consistency** | Every developer and every machine gets the exact same MongoDB 7 and Redis 7 versions |
+| **Isolation** | Containers run in their own network (`urlify-network`), avoiding port conflicts with other local services |
+| **Data persistence** | MongoDB data is stored in a named Docker volume (`mongodb_data`), so your data survives container restarts |
+| **Easy teardown** | `docker-compose down` cleanly stops everything; add `-v` to also wipe data and start fresh |
+
+### Docker Compose Services
+
+```yaml
+# docker-compose.yml defines two services:
+services:
+  mongodb:    # MongoDB 7 on port 27017, with persistent volume
+  redis:      # Redis 7 Alpine on port 6379
+```
+
+### Docker Commands
+
+```bash
+# Start all services in the background
+docker-compose up -d
+
+# Check running containers
+docker ps
+
+# View logs
+docker-compose logs -f
+
+# Stop all services (data preserved)
+docker-compose down
+
+# Stop and remove all data (fresh start)
+docker-compose down -v
+
+# Restart a specific service
+docker-compose restart redis
+```
 
 ## 🔐 Security Features
 
@@ -157,9 +203,8 @@ Request Flow:
 ### Prerequisites
 - Java 21 or higher
 - Maven 3.6+
-- MongoDB
-- Redis
-- Docker (optional)
+- Docker & Docker Compose (for MongoDB and Redis)
+- Node.js 18+ & npm (for frontend)
 
 ### Installation
 
@@ -364,7 +409,7 @@ Response: 200 OK
 1. **Stateless Design**: JWT tokens enable multiple server instances
 2. **Load Balancer**: Distribute traffic across instances
 3. **Shared Cache**: Redis cluster for distributed caching
-4. **Database Replication**: MySQL master-slave setup
+4. **Database Replication**: MongoDB replica set
 
 ### Vertical Scaling
 1. **Database Optimization**: Add indexes, query optimization

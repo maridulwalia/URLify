@@ -1,4 +1,4 @@
-import React, { InputHTMLAttributes, forwardRef, useState, useEffect } from 'react';
+import { InputHTMLAttributes, forwardRef, useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -81,8 +81,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                                 />
                             </div>
                             <span className={`text-xs font-medium ${passwordStrength.label === 'Weak' ? 'text-red-600' :
-                                    passwordStrength.label === 'Medium' ? 'text-yellow-600' :
-                                        'text-green-600'
+                                passwordStrength.label === 'Medium' ? 'text-yellow-600' :
+                                    'text-green-600'
                                 }`}>
                                 {passwordStrength.label}
                             </span>
