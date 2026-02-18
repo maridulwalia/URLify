@@ -1,0 +1,12 @@
+.git
+.gitignore
+README.md
+TESTING.md
+frontend
+target
+docker-compose.yml
+test-redis.bat
+*.md
+.idea
+.vscode
+*.iml
