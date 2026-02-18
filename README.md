@@ -1,7 +1,8 @@
 # URLify - Scalable URL Shortening & Analytics Platform
 
 <p align="center">
-  <strong>A production-ready URL shortening service built with enterprise-grade security, caching, and analytics</strong>
+  <strong>A scalable URL shortening service built with caching, authentication, and analytics.
+</strong>
 </p>
 
 ## 🎯 Overview
@@ -572,6 +573,192 @@ urlify/
 │   └── tailwind.config.js              # Tailwind config
 └── README.md                           # This file
 ```
+
+---
+
+## ⚖️ Design Decisions & Tradeoffs
+
+### Why Redis for Redirects?
+
+URL redirects are the highest-traffic operation in any shortener. Redis stores short-code-to-URL mappings in memory, giving O(1) lookups without touching the database on every request. This keeps redirect latency low and reduces load on MongoDB.
+
+**Tradeoff:** Redis adds operational complexity and memory cost. Every cached URL consumes memory, and if Redis goes down, the system falls back to MongoDB (slower, but still functional). There's also a cache-invalidation concern — when a URL is deleted or updated, the Redis entry must be explicitly evicted to avoid stale redirects.
+
+### Why MongoDB?
+
+MongoDB was chosen over a relational database for several practical reasons:
+- **Schema flexibility** — URL metadata and analytics documents can evolve without migrations
+- **Document model** — analytics click events map naturally to embedded or linked documents
+- **Horizontal scalability** — MongoDB supports sharding out of the box, which matters if the URL dataset grows significantly
+- **TTL indexes** — native support for automatic expiry of documents (used for URL expiration)
+
+**Tradeoff:** MongoDB lacks full ACID transactions across collections (though single-document atomicity is guaranteed). For this application's access patterns — mostly inserts and key-based lookups — this is an acceptable tradeoff. Relational joins are not needed here, so the absence of them is not a limitation.
+
+### Why Base62 Encoding?
+
+Base62 uses `[0-9a-zA-Z]` — 62 characters that are all URL-safe without encoding. A 7-character Base62 code supports 62^7 ≈ 3.5 trillion unique URLs, which is more than enough. The encoding is deterministic given an input ID and produces short, human-readable codes.
+
+**Tradeoff:** Base62 codes are sequential if derived from auto-incrementing IDs, which can make URL patterns guessable. In a production system, you might combine this with a random offset or use a hash-based approach to reduce predictability.
+
+### Why JWT Stateless Auth Over Sessions?
+
+JWT-based authentication was chosen because it removes the need for server-side session storage. The token carries the user's identity and is verified on each request using the signing key — no database or Redis lookup is needed for authentication.
+
+This is critical for horizontal scaling: any server instance can validate the token independently, so requests can be load-balanced freely without sticky sessions.
+
+**Tradeoff:** Token revocation is harder. Since there's no server-side session store, you can't easily invalidate a specific token before it expires. Mitigation options include short token lifetimes (currently 24 hours) or maintaining a token blocklist, but neither is free. Token size is also larger than a simple session cookie — each request carries the full JWT in the `Authorization` header.
+
+---
+
+## 🚀 Performance Considerations
+
+### Cache-First Redirect Flow
+
+The redirect path is the most latency-sensitive operation. The flow is:
+
+1. **Check Redis** — look up the short code in cache (O(1))
+2. **Cache hit** — return the original URL immediately, no database involved
+3. **Cache miss** — query MongoDB using the indexed `shortCode` field (O(log n)), cache the result in Redis for subsequent requests, then return
+
+This means the first access to a short URL after a cold start or cache eviction hits MongoDB, but all subsequent accesses are served from memory.
+
+### MongoDB Index Usage
+
+The following indexes are defined to keep query performance predictable:
+- **Unique index on `shortCode`** — ensures O(log n) lookups for redirect and deduplication
+- **Composite index on `userId` + `createdAt`** — supports the "my URLs" listing query without a collection scan
+- **TTL index on `expiresAt`** — MongoDB automatically removes expired URL documents, no background job needed
+
+Without these indexes, queries on a growing collection would degrade to full scans.
+
+### Scalability Implications
+
+- **Stateless backend** — JWT auth means you can run multiple Spring Boot instances behind a load balancer with no session affinity
+- **Shared Redis** — all instances point to the same Redis, so cache is consistent across the cluster
+- **MongoDB replica set** — read-heavy workloads (analytics queries, URL lookups) can be distributed across replicas
+
+### Potential Bottlenecks
+
+- **Redis memory** — if the URL dataset grows very large, not all mappings can fit in Redis. An eviction policy (e.g., LRU) would be needed
+- **Analytics writes** — every redirect triggers an analytics write to MongoDB. Under high traffic, this could become a write bottleneck. Batching or async writes (e.g., via a message queue) would help but are not currently implemented
+- **Single MongoDB instance** — the current Docker Compose setup runs a single MongoDB node. For production, a replica set or sharded cluster would be necessary
+
+---
+
+## ❗ Error Handling Strategy
+
+### Centralized Exception Handling
+
+All exceptions are routed through `GlobalExceptionHandler`, a `@RestControllerAdvice` class. This ensures that no raw stack traces or Spring default error pages leak to the client. Every error response follows a consistent structure.
+
+### Consistent HTTP Status Codes
+
+| Scenario | Status Code | Example |
+|----------|-------------|---------|
+| Resource not found | `404` | Short code doesn't exist |
+| Validation failure | `400` | Invalid URL format, missing fields |
+| Unauthorized | `401` | Missing or expired JWT |
+| Forbidden | `403` | Accessing another user's analytics |
+| Rate limited | `429` | Too many requests |
+| Server error | `500` | Unexpected failures |
+
+### Validation Handling
+
+Input validation happens at two levels:
+1. **DTO-level** — Spring's `@Valid` annotations catch missing or malformed fields before the request reaches the service layer
+2. **Business-level** — custom `UrlValidator` checks for blocked protocols, localhost URLs, private IPs, and excessively long URLs
+
+Validation errors return structured responses with specific field-level messages, not generic "Bad Request" strings.
+
+### Graceful Redis Fallback
+
+If Redis is unavailable (connection refused, timeout, etc.), the redirect service catches the exception and falls back to querying MongoDB directly. The user still gets redirected — just without the caching benefit. This fail-open approach ensures that a Redis outage doesn't take down the entire redirect flow.
+
+### Why Structured Error Responses Matter
+
+API consumers (including the React frontend) rely on predictable error formats to display meaningful messages. A consistent shape — with status code, error type, and message — lets the frontend handle errors generically without special-casing each endpoint.
+
+---
+
+## 🔄 Frontend–Backend Integration
+
+### JWT Token Handling
+
+On login or registration, the backend returns a JWT token. The frontend stores this token in `localStorage` and attaches it to every subsequent API request via the `Authorization: Bearer <token>` header.
+
+On page load, the frontend reads the token from `localStorage` and initializes the auth state synchronously — this prevents the "flash of logged-out state" that would occur if auth state were only fetched asynchronously.
+
+### Axios Interceptor Usage
+
+An Axios request interceptor automatically injects the JWT token into outgoing requests:
+
+```typescript
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+```
+
+This keeps token handling centralized — individual API calls don't need to manage headers manually.
+
+### Handling 401 Responses
+
+An Axios response interceptor watches for `401 Unauthorized` responses. When one is received, the interceptor clears the stored token and redirects the user to the login page. This handles token expiration gracefully without requiring the user to manually log out.
+
+### Loading States During Async Operations
+
+The frontend tracks loading state for API calls (URL shortening, fetching analytics, loading URL lists). Components render loading indicators while requests are in flight and transition to content or error states once the response arrives. This avoids blank screens and gives the user visual feedback.
+
+### Analytics Visualization
+
+The analytics page consumes click data from the `GET /api/analytics/{shortCode}` endpoint and renders it using Recharts. The backend provides raw click events with timestamps, IP addresses, user agents, and referrers. The frontend aggregates and visualizes this data — click trends over time, referrer breakdowns, etc.
+
+### Separation of Concerns
+
+All API interactions are isolated in a dedicated service layer (`api.ts`). React components call service functions and manage UI state — they don't construct URLs, set headers, or parse raw HTTP responses. This keeps components focused on rendering and makes the API layer independently testable.
+
+---
+
+## 🧪 Testing Strategy
+
+### Manual API Testing
+
+The primary testing approach uses cURL commands to exercise every endpoint. This covers the full request-response cycle including authentication, URL shortening, redirect following, and analytics retrieval. The README includes ready-to-use cURL examples for all endpoints.
+
+### Edge Cases Tested
+
+The following scenarios have been manually verified:
+- **Expired URLs** — accessing a short code after its TTL returns a `404`
+- **Unauthorized access** — requests without a valid JWT receive `401`
+- **Invalid input** — malformed URLs, missing fields, and blocked protocols return `400` with descriptive messages
+- **Analytics ownership** — attempting to view analytics for another user's URL returns `403`
+- **Rate limiting** — exceeding the request threshold returns `429`
+- **Redis unavailability** — redirects still work (via MongoDB fallback) when Redis is down
+
+### Ideal Test Coverage
+
+If unit and integration tests were to be added, they should cover:
+
+- **Unit tests:**
+  - `Base62Encoder` — encoding/decoding correctness, edge cases (zero, large numbers)
+  - `UrlValidator` — valid URLs pass, blocked protocols/IPs are rejected
+  - `JwtTokenProvider` — token generation, validation, expiration handling
+  - Service layer methods — business logic in isolation with mocked repositories
+
+- **Integration tests:**
+  - Full redirect flow — shorten → redirect → verify analytics recorded
+  - Auth flow — register → login → access protected endpoints
+  - Rate limiting — verify that exceeding limits triggers `429` responses
+  - Cache behavior — verify Redis is populated on first access, served on second
+
+### Why Redirect and Rate Limiting Tests Matter
+
+The redirect flow is the most critical path — if it breaks, every short URL is dead. Testing it end-to-end ensures that caching, fallback, analytics tracking, and expiration all work together correctly.
+
+Rate limiting is easy to misconfigure. Without tests, it's possible to accidentally leave endpoints unprotected or set limits too aggressively. Automated tests can verify that the correct limits apply to both public and authenticated endpoints.
 
 ---
 
