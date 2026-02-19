@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ShortUrlRedirect } from './components/ShortUrlRedirect';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -41,6 +42,8 @@ function App() {
                             }
                         />
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        {/* Catch-all: forward unknown paths (short codes) to the backend */}
+                        <Route path="*" element={<ShortUrlRedirect />} />
                     </Routes>
                 </Router>
             </ToastProvider>
