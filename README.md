@@ -15,6 +15,20 @@ URLify is a high-performance URL shortening platform designed with system design
 
 ---
 
+## 🚀 Live Demo & Deployment
+
+See the application in action: **[Live Demo](https://urlify-beta.vercel.app/login)**
+
+### Deployment Stack
+| Component | Service |
+|-----------|---------|
+| **Frontend** | [Vercel](https://vercel.com/) |
+| **Backend** | [Render](https://render.com/) |
+| **Database** | [MongoDB Atlas](https://www.mongodb.com/atlas) |
+| **Caching** | [Upstash Redis](https://upstash.com/) |
+
+---
+
 ## 🏗️ System Architecture
 
 ```
