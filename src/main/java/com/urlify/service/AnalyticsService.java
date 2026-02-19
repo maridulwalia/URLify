@@ -7,8 +7,8 @@ import com.urlify.exception.ResourceNotFoundException;
 import com.urlify.repository.AnalyticsRepository;
 import com.urlify.repository.UrlRepository;
 import com.urlify.repository.UserRepository;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,9 +30,13 @@ public class AnalyticsService {
     private UserRepository userRepository;
 
     /**
-     * Track a click event
+     * Track a click event asynchronously.
+     * Called after redirect response is already sent to minimize latency.
+     * Accepts pre-extracted request data since HttpServletRequest is not available
+     * after the request completes.
      */
-    public void trackClick(String shortCode, HttpServletRequest request) {
+    @Async
+    public void trackClick(String shortCode, String ipAddress, String userAgent, String referer) {
         Url url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("URL not found"));
 
@@ -43,9 +47,9 @@ public class AnalyticsService {
         // Create analytics record
         Analytics analytics = new Analytics();
         analytics.setShortCode(shortCode);
-        analytics.setIpAddress(getClientIp(request));
-        analytics.setUserAgent(request.getHeader("User-Agent"));
-        analytics.setReferer(request.getHeader("Referer"));
+        analytics.setIpAddress(ipAddress);
+        analytics.setUserAgent(userAgent);
+        analytics.setReferer(referer);
 
         analyticsRepository.save(analytics);
     }
@@ -119,24 +123,6 @@ public class AnalyticsService {
                 .expiresAt(url.getExpiresAt())
                 .recentClicks(clickDetails)
                 .build();
-    }
-
-    /**
-     * Extract client IP address from request
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        // If multiple IPs, take the first one
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
     }
 
     /**

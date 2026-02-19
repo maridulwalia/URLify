@@ -32,6 +32,12 @@ public class RedirectService {
      * Get original URL from short code with cache-first strategy
      */
     public String getOriginalUrl(String shortCode, HttpServletRequest request) {
+        // Extract request data now (before async handoff — request won't be available
+        // later)
+        String ipAddress = getClientIp(request);
+        String userAgent = request.getHeader("User-Agent");
+        String referer = request.getHeader("Referer");
+
         // Try cache first (O(1))
         String cacheKey = CACHE_PREFIX + shortCode;
         String originalUrl = null;
@@ -43,8 +49,8 @@ public class RedirectService {
         }
 
         if (originalUrl != null) {
-            // Cache hit - track analytics and return
-            analyticsService.trackClick(shortCode, request);
+            // Cache hit - track analytics asynchronously and return immediately
+            analyticsService.trackClick(shortCode, ipAddress, userAgent, referer);
             return originalUrl;
         }
 
@@ -64,9 +70,26 @@ public class RedirectService {
             System.err.println("Redis error (cache not updated): " + e.getMessage());
         }
 
-        // Track analytics
-        analyticsService.trackClick(shortCode, request);
+        // Track analytics asynchronously
+        analyticsService.trackClick(shortCode, ipAddress, userAgent, referer);
 
         return url.getOriginalUrl();
+    }
+
+    /**
+     * Extract client IP address from request
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 }
