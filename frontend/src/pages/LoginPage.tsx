@@ -70,6 +70,7 @@ export const LoginPage: React.FC = () => {
                         onChange={(e) => setEmail(e.target.value)}
                         error={errors.email}
                         placeholder="you@example.com"
+                        autoComplete="email"
                     />
 
                     <Input
@@ -79,6 +80,7 @@ export const LoginPage: React.FC = () => {
                         onChange={(e) => setPassword(e.target.value)}
                         error={errors.password}
                         placeholder="••••••••"
+                        autoComplete="current-password"
                     />
 
                     <Button type="submit" isLoading={isLoading} className="w-full">

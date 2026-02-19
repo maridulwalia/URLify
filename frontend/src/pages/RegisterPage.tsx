@@ -89,6 +89,7 @@ export const RegisterPage: React.FC = () => {
                         onChange={(e) => setUsername(e.target.value)}
                         error={errors.username}
                         placeholder="johndoe"
+                        autoComplete="username"
                     />
 
                     <Input
@@ -98,6 +99,7 @@ export const RegisterPage: React.FC = () => {
                         onChange={(e) => setEmail(e.target.value)}
                         error={errors.email}
                         placeholder="you@example.com"
+                        autoComplete="email"
                     />
 
                     <Input
@@ -108,6 +110,7 @@ export const RegisterPage: React.FC = () => {
                         error={errors.password}
                         placeholder="••••••••"
                         showPasswordStrength={true}
+                        autoComplete="new-password"
                     />
 
                     <Input
@@ -117,6 +120,7 @@ export const RegisterPage: React.FC = () => {
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         error={errors.confirmPassword}
                         placeholder="••••••••"
+                        autoComplete="new-password"
                     />
 
                     <Button type="submit" isLoading={isLoading} className="w-full">
